@@ -1,0 +1,5 @@
+_cluster/
+deps/
+ebin/
+logs/
+test/*.beam
