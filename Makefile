@@ -7,7 +7,9 @@ PLT_DEPS = $(filter-out deps/rebar,$(wildcard deps/*))
 ERL_LIB_DIR=${ERL_TOP}/lib
 ERL_APPS = $(shell ls $(ERL_LIB_DIR) | grep -v interface | grep -v tsung | sed -e 's/-[0-9.]*//')
 
-all: get-deps compile release
+dev: dev-clean fast-compile release
+
+full: real-clean get-deps compile test release
 
 get-deps:
 	@${REBAR} get-deps
@@ -18,7 +20,10 @@ fast-clean:
 clean:
 	@${REBAR} clean
 
-deps-clean:
+dev-clean:
+	@rm -rf _cluster ebin test/*.beam
+
+real-clean: dev-clean
 	@rm -rf deps
 
 compile:
@@ -45,12 +50,9 @@ dialyze:
 		--src src -r ebin \
 		| grep -v -f ./dialyzer.ignore-warnings
 
-release-clean:
-	@rm -rf _rel
-
 release:
 	@$(RELX) -o _cluster/n1 --overlay_vars files/config/vars/n1.config -c relx.config
 	@$(RELX) -o _cluster/n2 --overlay_vars files/config/vars/n2.config -c relx.config
 	@$(RELX) -o _cluster/n3 --overlay_vars files/config/vars/n3.config -c relx.config
 
-.PHONY: all get-deps fast-clean clean deps-clean compile fast-compile test build-plt clean-plt dialyze release-clean release
+.PHONY: dev full get-deps fast-clean clean dev-clean real-clean compile fast-compile test build-plt clean-plt dialyze release

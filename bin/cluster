@@ -80,49 +80,49 @@ case $script in
     start)
         header $*
         for w in _cluster/n*; do
-            echo "Starting node : `basename $w` `WHIZZ_CLUSTERING_ENABLED=true $w/bin/whizz start`";
+            echo "Starting node : `basename $w` `WHIZZ_CLUSTERING_ENABLED=true $w/bin/rcr start`";
             sleep 15
         done
         ;;
     stop)
         header $*
         for w in _cluster/n*; do
-            echo "Stopping node : `basename $w` `$w/bin/whizz stop`";
+            echo "Stopping node : `basename $w` `$w/bin/rcr stop`";
         done
         ;;
     restart)
         header $*
         for w in _cluster/n*; do
             echo "Restarting node : `basename $w` ";
-            echo "  Stopping node : `basename $w` `WHIZZ_CLUSTERING_ENABLED=true $w/bin/whizz stop`";
-            echo "  Starting node : `basename $w` `WHIZZ_CLUSTERING_ENABLED=true $w/bin/whizz start`";
+            echo "  Stopping node : `basename $w` `WHIZZ_CLUSTERING_ENABLED=true $w/bin/rcr stop`";
+            echo "  Starting node : `basename $w` `WHIZZ_CLUSTERING_ENABLED=true $w/bin/rcr start`";
             sleep 15
         done
         ;;
     ping)
         header $*
         for w in _cluster/n*; do
-            echo "Pinging node : `basename $w` `$w/bin/whizz ping`";
+            echo "Pinging node : `basename $w` `$w/bin/rcr ping`";
         done
         ;;
     vping)
         header $*
-        _cluster/n3/bin/whizz_ds_console ping
+        _cluster/n3/bin/rcr_console ping
         ;;
     version)
         header $*
-        _cluster/n3/bin/whizz_ds_console version
+        _cluster/n3/bin/rcr_console version
         ;;
     join)
         header $*
         for w in _cluster/n{2,3}; do
-            $w/bin/whizz_ds_console join "whizz1@127.0.0.1"
+            $w/bin/rcr_console join "rcr1@127.0.0.1"
         done
         ;;
     leave)
         header $*
         for w in _cluster/n{2,3}; do
-            $w/bin/whizz_ds_console leave "whizz1@127.0.0.1"
+            $w/bin/rcr_console leave "rcr1@127.0.0.1"
         done
         ;;
     dumpy)
@@ -137,20 +137,20 @@ case $script in
     diag)
         header $*
         shift
-        _cluster/n1/bin/whizz_ds_console diag $*
-        _cluster/n2/bin/whizz_ds_console diag $*
-        _cluster/n3/bin/whizz_ds_console diag $*
+        _cluster/n1/bin/rcr_console diag $*
+        _cluster/n2/bin/rcr_console diag $*
+        _cluster/n3/bin/rcr_console diag $*
         ;;
     ringready)
         header $*
-        _cluster/n1/bin/whizz_ds_console ringready
-        _cluster/n2/bin/whizz_ds_console ringready
-        _cluster/n3/bin/whizz_ds_console ringready
+        _cluster/n1/bin/rcr_console ringready
+        _cluster/n2/bin/rcr_console ringready
+        _cluster/n3/bin/rcr_console ringready
         ;;
     cluster[_-]info)
         header $1
         shift
-        _cluster/n3/bin/whizz_ds_console cluster_info out.html whizz1@127.0.0.1 whizz2@127.0.0.1 whizz3@127.0.0.1
+        _cluster/n3/bin/rcr_console cluster_info out.html rcr1@127.0.0.1 rcr2@127.0.0.1 rcr3@127.0.0.1
         mv _cluster/n3/out.html cluster_info.html
         open cluster_info.html
         ;;
@@ -162,7 +162,7 @@ case $script in
             node=$1
             if [ -d _cluster/$1 ];
             then
-                _cluster/$1/bin/whizz attach $node
+                _cluster/$1/bin/rcr attach $node
             else
                 echo -e "${white}Invalid node: ${bold}${red}$node${reset}"
             fi
@@ -179,7 +179,7 @@ case $script in
             if [ -d _cluster/$1 ];
             then
                 echo -e "${reset}"
-                WHIZZ_CLUSTERING_ENABLED=true _cluster/$1/bin/whizz console $node
+                WHIZZ_CLUSTERING_ENABLED=true _cluster/$1/bin/rcr console $node
             else
                 echo -e "${white}Invalid node: ${bold}${red}$node${reset}"
             fi
@@ -203,5 +203,5 @@ ok
 exit 0
 
 # member status
-#_cluster/n1/whizz-cluster-admin member-status
+#_cluster/n1/rcr-cluster-admin member-status
 
