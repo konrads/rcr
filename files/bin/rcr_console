@@ -1,10 +1,109 @@
-#!/bin/bash
+#!/bin/sh
 
-RUNNER_SCRIPT_DIR=$(cd ${0%/*} && pwd)
+set -e
+
+SCRIPT_NAME=`basename $0`
+SCRIPT_DIR=`dirname $0`
+RELEASE_ROOT_DIR=`cd $SCRIPT_DIR/.. && pwd`
+REL_NAME=whizz
+REL_VSN={{ rel_vsn }}
+ERTS_VSN={{ erts_vsn }}
+REL_DIR=$RELEASE_ROOT_DIR/releases/$REL_VSN
+ERL_OPTS=
+PIPE_DIR=/tmp/erl_pipes/whizz/
+
+find_erts_dir() {
+    local erts_dir=$RELEASE_ROOT_DIR/erts-$ERTS_VSN
+    if [ -d "$erts_dir" ]; then
+        ERTS_DIR=$erts_dir;
+        ROOTDIR=$RELEASE_ROOT_DIR
+    else
+        local erl=`which erl`
+        local erl_root=`$erl -noshell -eval "io:format(\"~s\", [code:root_dir()])." -s init stop`
+        ERTS_DIR=$erl_root/erts-$ERTS_VSN
+        ROOTDIR=$erl_root
+    fi
+
+}
+
+find_sys_config() {
+    local possible_sys=$REL_DIR/sys.config
+    if [ -f "$possible_sys" ]; then
+        SYS_CONFIG="-config $possible_sys"
+    fi
+}
+
+# Use $CWD/vm.args if exists, otherwise releases/APP_VSN/vm.args, or else etc/vm.args
+if [ -e "$RELEASE_ROOT_DIR/vm.args" ]; then
+    VMARGS_PATH=$RELEASE_ROOT_DIR/vm.args
+    USE_DIR=$RELEASE_ROOT_DIR
+else
+    USE_DIR=$REL_DIR
+    if [ -e "$REL_DIR/vm.args" ]; then
+        VMARGS_PATH="$REL_DIR/vm.args"
+    else
+        VMARGS_PATH="$REL_DIR/vm.args"
+    fi
+fi
+
+RUNNER_LOG_DIR=$RELEASE_ROOT_DIR/log
+# Make sure log directory exists
+mkdir -p $RUNNER_LOG_DIR
+
+# Use releases/VSN/sys.config if it exists otherwise use etc/app.config
+if [ -e "$USE_DIR/sys.config" ]; then
+    CONFIG_PATH="$USE_DIR/sys.config"
+else
+    if [ -e "$REL_DIR/sys.config" ]; then
+        CONFIG_PATH="$REL_DIR/sys.config"
+    else
+        CONFIG_PATH="$REL_DIR/app.config"
+    fi
+fi
+
+# Extract the target node name from node.args
+NAME_ARG=`egrep '^-s?name' $VMARGS_PATH`
+if [ -z "$NAME_ARG" ]; then
+    echo "vm.args needs to have either -name or -sname parameter."
+    exit 1
+fi
+
+# Extract the name type and name from the NAME_ARG for REMSH
+REMSH_TYPE=`echo $NAME_ARG | awk '{print $1}'`
+REMSH_NAME=`echo $NAME_ARG | awk '{print $2}'`
+
+# Note the `date +%s`, used to allow multiple remsh to the same node transparently
+REMSH_NAME_ARG="$REMSH_TYPE remsh`date +%s`@`echo $REMSH_NAME | awk -F@ '{print $2}'`"
+REMSH_REMSH_ARG="-remsh $REMSH_NAME -boot start_clean"
+
+# Extract the target cookie
+COOKIE_ARG=`grep '^-setcookie' $VMARGS_PATH`
+if [ -z "$COOKIE_ARG" ]; then
+    echo "vm.args needs to have a -setcookie parameter."
+    exit 1
+fi
+
+find_erts_dir
+find_sys_config
+export ROOTDIR=$RELEASE_ROOT_DIR
+export BINDIR=$ERTS_DIR/bin
+export EMU=beam
+export PROGNAME=erl
+export LD_LIBRARY_PATH=$ERTS_DIR/lib
+
+cd $ROOTDIR
+
+# Setup remote shell command to control node
+REMSH="$BINDIR/erl $REMSH_NAME_ARG $REMSH_REMSH_ARG $COOKIE_ARG"
+
+# Setup command to control the node
+NODETOOL="$BINDIR/escript $BINDIR/nodetool $NAME_ARG $COOKIE_ARG"
+
+RUNNER_SCRIPT_DIR=$SCRIPT_DIR
 RUNNER_SCRIPT=${0##*/}
 
 RUNNER_BASE_DIR=${RUNNER_SCRIPT_DIR%/*}
-RUNNER_ETC_DIR=$RUNNER_BASE_DIR/etc
+RUNNER_ETC_DIR=$REL_DIR
 RUNNER_LOG_DIR=$RUNNER_BASE_DIR/log
 RUNNER_USER=
 
@@ -19,26 +118,15 @@ if [ "$RUNNER_USER" -a "x$LOGNAME" != "x$RUNNER_USER" ]; then
     exec sudo -u $RUNNER_USER -i $RUNNER_SCRIPT_DIR/$RUNNER_SCRIPT $@
 fi
 
-# Make sure CWD is set to runner base dir
-cd $RUNNER_BASE_DIR
-
-# Extract the target node name from node.args
-NAME_ARG=`grep -e '-[s]*name' $RUNNER_ETC_DIR/vm.args`
-if [ -z "$NAME_ARG" ]; then
-    echo "vm.args needs to have either -name or -sname parameter."
-    exit 1
-fi
-
 # Learn how to specify node name for connection from remote nodes
-echo "$NAME_ARG" | grep '^-sname' > /dev/null 2>&1
-if [ "X$?" = "X0" ]; then
+if [ "-sname" = "${REMSH_TYPE}" ]; then
     NAME_PARAM="-sname"
     NAME_HOST=""
 else
     NAME_PARAM="-name"
     echo "$NAME_ARG" | grep '@.*' > /dev/null 2>&1
     if [ "X$?" = "X0" ]; then
-        NAME_HOST=`echo "${NAME_ARG}" | sed -e 's/.*(@.*)$//'`
+        NAME_HOST=`echo "${NAME_ARG}" | sed -e 's/.*(@.*)$//'`
     else
         NAME_HOST=""
     fi
@@ -51,19 +139,11 @@ if [ -z "$COOKIE_ARG" ]; then
     exit 1
 fi
 
-# Identify the script name
-SCRIPT=`basename $0`
-
-# Parse out release and erts info
-START_ERL=`cat $RUNNER_BASE_DIR/releases/start_erl.data`
-ERTS_VSN=${START_ERL% *}
-APP_VSN=${START_ERL#* }
-
 # Add ERTS bin dir to our path
 ERTS_PATH=$RUNNER_BASE_DIR/erts-$ERTS_VSN/bin
 
 # Setup command to control the node
-NODETOOL="$ERTS_PATH/escript $ERTS_PATH/nodetool $NAME_ARG $COOKIE_ARG"
+#NODETOOL="$ERTS_PATH/escript $ERTS_PATH/nodetool $NAME_ARG $COOKIE_ARG"
 
 # Check the first argument for instructions
 case "$1" in
@@ -94,7 +174,7 @@ case "$1" in
 
     remove)
         if [ $# -ne 2 ]; then
-            echo "Usage: $SCRIPT remove <node>"
+            echo "Usage: $SCRIPT_NAME remove <node>"
             exit 1
         fi
 
@@ -120,8 +200,78 @@ case "$1" in
         $NODETOOL rpc rcr_console ringready $@
         ;;
 
+    ping)
+        # Make sure the local node IS running
+        RES=`$NODETOOL ping`
+        if [ "$RES" != "pong" ]; then
+            echo "Node is not running!"
+            exit 1
+        fi
+        shift
+
+        $NODETOOL rpc rcr_console ping $@
+        ;;
+
+    version)
+        # Make sure the local node IS running
+        RES=`$NODETOOL ping`
+        if [ "$RES" != "pong" ]; then
+            echo "Node is not running!"
+            exit 1
+        fi
+        shift
+
+        $NODETOOL rpc rcr_console version $@
+        ;;
+
+    diag)
+        case "$2" in
+            --help|-h)
+                echo "Usage: whizz_cluster_admin diag [-d <level>] [-l] [-h] [--export] [check_name ...]"
+                echo ""
+                echo "-h, --help            Display help/usage dialogue"
+                echo "-d, --level           Minimum message severity level (default: notice)"
+                echo "-l, --list            Describe available diagnostic tasks"
+                echo "--export              Package system info in '$CWD/export.zip'"
+                echo "check_name            A specific check to run"
+                exit 1
+                ;;
+            *)
+
+                # Make sure the local node IS running
+                RES=`$NODETOOL ping`
+                if [ "$RES" != "pong" ]; then
+                    echo "Node is not running!"
+                    exit 1
+                fi
+
+                # Setup command to run riaknostic
+                RIAKNOSTIC="$NODETOOL rpc riaknostic main \
+                    --etc $RUNNER_ETC_DIR --base $RUNNER_BASE_DIR"
+
+                shift
+
+                $RIAKNOSTIC "$@"
+            esac
+        ;;
+    cluster[_-]info)
+        if [ $# -lt 2 ]; then
+            echo "Usage: $SCRIPT $1 <output_file> ['local' | <node> ['local' | <node>] [...]]"
+            exit 1
+        fi
+        shift
+
+        # Make sure the local node is running
+        RES=`$NODETOOL ping`
+        if [ "$RES" != "pong" ]; then
+            echo "Node is not running!"
+            exit 1
+        fi
+
+        $NODETOOL rpc rcr_console cluster_info "$@"
+        ;;
     *)
-        echo "Usage: $SCRIPT { join | leave | reip | ringready | remove }"
+        echo "Usage: $SCRIPT_NAME { join | leave | ping | version | ringready | remove | ping | cluster_info }"
         exit 1
         ;;
 esac

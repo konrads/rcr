@@ -14,8 +14,8 @@
         {config,
             {rcr_config,
                 % sample vnode/service maping
-                [{rcr_vnode_mapping, rcr_sample_service, rcr_sample_vnode, rcr_sample_vnode_sup, rcr_sample_vnode_master}],
-                undefined,
-                undefined}}
+                [{vnode_config, rcr_sample_service, rcr_sample_vnode, rcr_sample_vnode_sup, rcr_sample_vnode_master}],
+                rcr_sample_ring_event_handler,
+                rcr_sample_node_event_handler}}
     ]}
 ]}.

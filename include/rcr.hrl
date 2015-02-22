@@ -1,13 +1,13 @@
--record(rcr_vnode_mapping, {
-    id           :: atom(),
+-record(vnode_config, {
+    service_id   :: atom(),
     vnode        :: module(),
     vnode_sup    :: module(),
     vnode_master :: atom()
 }).
--type rcr_vnode_mapping() :: #rcr_vnode_mapping{}.
+-type vnode_config() :: #vnode_config{}.
 
 -record(rcr_config, {
-    vnode_mappings = [] :: [#rcr_vnode_mapping{}],
+    vnode_configs = []  :: [#vnode_config{}],
     ring_event_handler  :: module(),
     node_event_handler  :: module()
 }).

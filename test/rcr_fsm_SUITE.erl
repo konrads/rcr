@@ -1,3 +1,5 @@
+%% Test of the in-process FSM, where the state machine is that of a door,
+%% with 2 states: opened & closed, and 2 events: open & close
 -module(rcr_fsm_SUITE).
 
 -inslude("../include/rcr.hrl").

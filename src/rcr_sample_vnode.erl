@@ -16,17 +16,23 @@
          handle_coverage/4,
          handle_exit/3]).
 
--record(state, {partition}).
+-record(state, {partition, vnode_config}).
 
 %% API
-start_vnode(I) ->
-    riak_core_vnode_master:get_vnode_pid(I, ?MODULE).
+start_vnode(Index) ->
+    rcr_util:get_vnode_pid(rcr_util:get_vnode_config(?MODULE), Index).
 
 init([Partition]) ->
-    {ok, #state { partition=Partition }}.
+    VnodeConfig = rcr_util:get_vnode_config(?MODULE),
+    lager:info("Starting ~s on partition ~p", [rcr_fmt:to_short_str(VnodeConfig), Partition]),
+    State = #state {
+        partition=Partition,
+        vnode_config=VnodeConfig},
+    {ok, State}.
 
-handle_command(ping, _Sender, State) ->
-    {reply, {pong, State#state.partition}, State};
+handle_command(ping, _Sender, #state{partition=Partition, vnode_config=VnodeConfig}=State) ->
+    lager:info("Pong ok ~s", [rcr_fmt:to_str(VnodeConfig)]),
+    {reply, {pong, Partition, node()}, State};
 handle_command(_Message, _Sender, State) ->
     {noreply, State}.
 

@@ -11,7 +11,7 @@ join([NodeStr]) ->
     wrap(
         fun() ->
             riak_core:join(NodeStr),
-            io:format("Sent join request to ~s~n", NodeStr)
+            io:format("Sent join request to ~s~n", [NodeStr])
         end,
         NodeStr,
         "Join failed").
@@ -67,11 +67,11 @@ wrap(Fun, NodeStr, ExcMsg) when is_function(Fun, 0) ->
             error(R)
     catch
         error:R ->
-            lager:error(ExcMsg ++ " error:~p", [R]),
+            lager:error(ExcMsg ++ " error:~p\nstacktrace: ~p", [R, erlang:get_stacktrace()]),
             io:format(ExcMsg ++ ", see log for details~n"),
             error(R);
         throw:R ->
-            lager:error(ExcMsg ++ " throw:~p", [R]),
+            lager:error(ExcMsg ++ " throw:~p\nstacktrace: ~p", [R, erlang:get_stacktrace()]),
             io:format(ExcMsg ++ ", see log for details~n"),
             throw(R)
     end.
