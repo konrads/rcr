@@ -19,7 +19,13 @@ start(_StartType, _StartArgs) ->
 
 
 start(#rcr_config{vnode_mappings=VnodeMappings, ring_event_handler=RingEventHandler, node_event_handler=NodeEventHandler}) ->
-    lager:info("\nStarting VnodeMappings: ~p\nRing Event Handler: ~p\nNode Event Handler: ~p", [VnodeMappings, RingEventHandler, NodeEventHandler]),
+    VnodeMappingsDesc = string:join(
+        ["        - " ++ to_str(Mapping) || Mapping <- VnodeMappings],
+        "\n"),
+    lager:info("Starting rcr:
+    - vnode mappings:\n~s
+    - ring Event Handler: ~p
+    - node Event Handler: ~p", [VnodeMappingsDesc, RingEventHandler, NodeEventHandler]),
     case rcr_vnode_sup:start_link(VnodeMappings) of
         {ok, Pid} ->
             % register vnodes
@@ -46,3 +52,7 @@ start(#rcr_config{vnode_mappings=VnodeMappings, ring_event_handler=RingEventHand
 
 stop(_State) ->
     ok.
+
+% internals
+to_str(#rcr_vnode_mapping{id=Id, vnode=Vnode, vnode_sup=VnodeSup, vnode_master=VnodeMaster}) ->
+    ?format("~p: vnode=~p, sup=~p, master=~p", [Id, Vnode, VnodeSup, VnodeMaster]).

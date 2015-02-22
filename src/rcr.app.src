@@ -1,10 +1,11 @@
 {application, rcr, [
-    {description, "riak_core on rails, ie. attempt to simplify the riak_core development for *simple* apps. Loooong way away from being complete (unlike RoR)."},
+    {description, "riak_core on rails, ie. simplification of riak_core development for *simple* apps, not yet up to RoR standards."},
     {vsn, "0.1.0"},
     {registered, []},
     {applications, [
         stdlib,
         kernel,
+        bear,    % not sure why needed this isn't pulled in via the chain: riak_core -> folsomite -> bear
         lager,
         riak_core]},
     {mod, {rcr_app, []}},
