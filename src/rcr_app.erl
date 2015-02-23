@@ -1,3 +1,4 @@
+%% Template application.  start/1 can be re-used other applications.  NOTE: validation step (to ensure riak_core assumptions are met).
 -module(rcr_app).
 -behaviour(application).
 
@@ -26,15 +27,16 @@ start(#rcr_config{vnode_configs=VnodeConfigs, ring_event_handler=RingEventHandle
     - vnode mappings:\n~s
     - ring Event Handler: ~p
     - node Event Handler: ~p", [VnodeConfigsDesc, RingEventHandler, NodeEventHandler]),
-    case rcr_vnode_sup:start_link(VnodeConfigs) of
+    case rcr_sup:start_link(VnodeConfigs) of
         {ok, Pid} ->
             % register vnodes
             [
                 begin
+                    ok = rcr_util:validate(VC),
                     ok = riak_core:register([{vnode_module, Vnode}]),
                     ok = riak_core_node_watcher:service_up(ServiceId, self())
                 end
-                || #vnode_config{service_id=ServiceId, vnode=Vnode} <- VnodeConfigs
+                || #vnode_config{service_id=ServiceId, vnode=Vnode}=VC <- VnodeConfigs
             ],
             % register ring handlers
             case RingEventHandler of

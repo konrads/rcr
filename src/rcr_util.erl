@@ -1,4 +1,4 @@
-%% Facade to hide riak_core's ugliness.
+%% Facade to hide riak_core's ugliness.  Collects useful functionality.
 -module(rcr_util).
 
 -include("rcr_int.hrl").
@@ -6,7 +6,9 @@
 -export([
     command/6,
     get_vnode_pid/2,
-    get_vnode_config/1
+    get_vnode_config/1,
+    validate/1,
+    member_status/0
 ]).
 
 command(#vnode_config{service_id=ServiceId, vnode_master=VnodeMaster},
@@ -39,3 +41,14 @@ get_vnode_pid(#vnode_config{vnode=Vnode}, Index) ->
 get_vnode_config(VnodeModule) ->
     {ok, #rcr_config{vnode_configs=VnodeConfigs}} = application:get_env(rcr, config),
     lists:keyfind(VnodeModule, #vnode_config.vnode, VnodeConfigs).
+
+%% Potentially work in progress, perhaps other validation can be of use
+validate(#vnode_config{vnode=Vnode, vnode_sup=VnodeSup}) ->
+    ExpVnodeSup = list_to_atom(atom_to_list(Vnode) ++ "_sup"),
+    case ExpVnodeSup of
+        VnodeSup -> ok;
+        _ -> throw({invalid_vnode_sup, {is, VnodeSup}, {must_be, ExpVnodeSup}})
+    end.
+
+member_status() ->
+    riak_core_console:member_status([]).

@@ -1,4 +1,4 @@
--module(rcr_vnode_sup).
+-module(rcr_sup).
 
 -behaviour(supervisor).
 
@@ -27,6 +27,9 @@ start_link(VnodeConfigs) ->
 %%% Supervisor callbacks
 %%%===================================================================
 init(VnodeConfigs) when is_list(VnodeConfigs) ->
+    % validate first
+    [rcr_util:validate(VC) || VC <- VnodeConfigs],
+    % construct supervision tree
     VnodeMasters = [
         {VnodeMaster, {riak_core_vnode_master, start_link, [Vnode]}, permanent, 5000, worker, [riak_core_vnode_master]}
         ||

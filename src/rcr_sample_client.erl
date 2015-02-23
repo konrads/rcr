@@ -5,7 +5,7 @@
 -export([ping/0, ping/1]).
 
 %% could fetch that from sys.config?
--define(client_vnode_config, #vnode_config{service_id=rcr_sample_service, vnode_master=rcr_sample_vnode_master}).
+-define(client_vnode_config, #vnode_config{service_id=rcr_sample, vnode_master=rcr_sample_vnode_master}).
 
 ping() -> ping(1).
 

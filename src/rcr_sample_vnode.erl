@@ -1,4 +1,7 @@
 -module(rcr_sample_vnode).
+
+-include_lib("riak_core/include/riak_core_vnode.hrl").
+
 -behaviour(riak_core_vnode).
 
 -export([start_vnode/1,
@@ -24,7 +27,7 @@ start_vnode(Index) ->
 
 init([Partition]) ->
     VnodeConfig = rcr_util:get_vnode_config(?MODULE),
-    lager:info("Starting ~s on partition ~p", [rcr_fmt:to_short_str(VnodeConfig), Partition]),
+    % lager:info("Starting ~s on partition ~p", [rcr_fmt:to_short_str(VnodeConfig), Partition]),
     State = #state {
         partition=Partition,
         vnode_config=VnodeConfig},
@@ -51,8 +54,8 @@ handoff_finished(_TargetNode, State) ->
 handle_handoff_data(_Data, State) ->
     {reply, ok, State}.
 
-encode_handoff_item(_ObjectName, _ObjectValue) ->
-    <<>>.
+encode_handoff_item(Key, Obj) ->
+    term_to_binary(Key, Obj).
 
 is_empty(State) ->
     {true, State}.
