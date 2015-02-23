@@ -10,4 +10,4 @@
 ping() -> ping(1).
 
 ping(N) ->
-    rcr_util:command(?client_vnode_config, {<<"ping">>, term_to_binary(now())}, N, all, sync_spawn, ping).
+    rcr_util:command(?client_vnode_config, {<<"ping">>, term_to_binary(now())}, N, primary, sync_spawn, ping).
