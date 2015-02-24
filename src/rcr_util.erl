@@ -8,6 +8,10 @@
     get_vnode_pid/2,
     get_vnode_config/1,
     validate/1,
+    disconnect/0,
+    disconnect/1,
+    reconnect/0,
+    reconnect/2,
     member_status/0
 ]).
 
@@ -52,3 +56,30 @@ validate(#vnode_config{vnode=Vnode, vnode_sup=VnodeSup}) ->
 
 member_status() ->
     riak_core_console:member_status([]).
+
+%% disconnect/reconnect only on erlang level, not riak's level, defaults are: Node='rcr1@127.0.0.1', Cookie=rcr.
+disconnect() ->
+    disconnect('rcr1@127.0.0.1').
+
+disconnect(Node) ->
+    rpc:call(Node, error_logger, error_msg, ["Disconnect from ~p - lager loglevel => critical", [node()]]),
+    % rpc:call(Node, gen_event, delete_handler, [error_logger, error_logger_lager_h, delete]),
+    rpc:call(Node, lager, set_loglevel, [lager_console_backend, critical]),
+    Cookie = erlang:get_cookie(),
+    erlang:set_cookie(node(), fake_cookie),
+    % gen_event:delete_handler(error_logger, error_logger_lager_h, delete),
+    lager:set_loglevel(lager_console_backend, critical),
+    erlang:disconnect_node(Node),
+    Cookie.
+
+reconnect() ->
+    reconnect('rcr1@127.0.0.1', rcr).
+
+reconnect(Node, Cookie) ->
+    erlang:set_cookie(node(), Cookie),
+    pong = net_adm:ping(Node),
+    % gen_event:add_handler(error_logger, error_logger_lager_h, [info]),
+    lager:set_loglevel(lager_console_backend, info),
+    % rpc:call(Node, gen_event, add_handler, [error_logger, error_logger_lager_h, [info]]),
+    rpc:call(Node, lager, set_loglevel, [lager_console_backend, info]),
+    rpc:call(Node, error_logger, error_msg, ["Reconnect to ~p - lager loglevel => info", [node()]]).

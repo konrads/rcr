@@ -6,8 +6,11 @@
         stdlib,
         kernel,
         bear,    % not sure why needed this isn't pulled in via the chain: riak_core -> folsomite -> bear
+        locks,
         lager,
-        riak_core]},
+        riak_core,
+        riak_governor]},
+    {included_applications, [dq]},
     {mod, {rcr_app, []}},
     {env, []}
 ]}.
