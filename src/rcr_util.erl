@@ -1,4 +1,4 @@
-%% Facade to hide riak_core's ugliness.  Collects useful functionality.
+%% Facade to hide riak_core's ugliness.  Also collects other useful functionality.
 -module(rcr_util).
 
 -include("rcr_int.hrl").
@@ -12,7 +12,9 @@
     disconnect/1,
     reconnect/0,
     reconnect/2,
-    member_status/0
+    member_status/0,
+    recon/2,
+    recon/3
 ]).
 
 command(#vnode_config{service_id=ServiceId, vnode_master=VnodeMaster},
@@ -83,3 +85,10 @@ reconnect(Node, Cookie) ->
     % rpc:call(Node, gen_event, add_handler, [error_logger, error_logger_lager_h, [info]]),
     rpc:call(Node, lager, set_loglevel, [lager_console_backend, info]),
     rpc:call(Node, error_logger, error_msg, ["Reconnect to ~p - lager loglevel => info", [node()]]).
+
+% tracing/debugging simplified
+recon(M, F) ->
+    recon(M, F, '_').
+
+recon(M, F, Args) ->
+    recon_trace:calls({M, F, [{Args, [], [{return_trace}]}]}, {100, 10}).
