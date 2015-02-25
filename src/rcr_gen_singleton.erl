@@ -47,7 +47,8 @@ cast(ServerRef, Request) ->
     gen_server:cast(ServerRef, {singleton_req, Request}).
 
 info(ServerRef, Request) ->
-    ServerRef ! {singleton_req, Request}.
+    ServerRef ! {singleton_req, Request},
+    ok.
 
 broadcall(ServerCb, Request, ExcludedNodes) ->
     broadcall(ServerCb, Request, infinity, ExcludedNodes).
@@ -64,7 +65,13 @@ broadcast(ServerCb, Request, ExcludedNodes) ->
     [ gen_server:cast({ServerCb, Node}, {broad_req, Request}) || Node <- get_cluster_nodes(ExcludedNodes) ].
 
 broadinfo(ServerCb, Request, ExcludedNodes) ->
-    [ {ServerCb, Node} ! {broad_req, Request} || Node <- get_cluster_nodes(ExcludedNodes) ].
+    [
+        begin
+            {ServerCb, Node} ! {broad_req, Request},
+            ok
+        end
+        || Node <- get_cluster_nodes(ExcludedNodes)
+    ].
 
 %%%===================================================================
 %%% gen_server callbacks

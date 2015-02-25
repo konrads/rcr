@@ -33,7 +33,7 @@ fast-compile:
 	@${REBAR} skip_deps=true compile
 
 test:
-	@${REBAR} -v skip_deps=true ct
+	@${REBAR} skip_deps=true ct
 
 build-plt:
 	if [ ! -f .plt ]; then \

@@ -34,11 +34,11 @@ ping_call() ->
 ping_call(Timeout) ->
     rcr_gen_singleton:call(?MODULE, ping, Timeout).
 
-ping_cast(IncludeSelf) ->
-    rcr_gen_singleton:cast(?MODULE, {ping, IncludeSelf}).
+ping_cast(IncludeLeader) ->
+    rcr_gen_singleton:cast(?MODULE, {ping, IncludeLeader}).
 
-ping_info(IncludeSelf) ->
-    rcr_gen_singleton:info(?MODULE, {ping, IncludeSelf}).
+ping_info(IncludeLeader) ->
+    rcr_gen_singleton:info(?MODULE, {ping, IncludeLeader}).
 
 %%%===================================================================
 %%% gen_server callbacks
@@ -58,10 +58,10 @@ handle_call(ping_non_leader, _From, State) ->
     lager:info("Call pinged non leader ~p", [Node]),
     {reply, {non_leader_pinged, Node}, State}.
 
-handle_cast({ping, IncludeSelf}, State) ->
-    ExcludedNodes = case IncludeSelf of
-        true -> [node()];
-        false -> []
+handle_cast({ping, IncludeLeader}, State) ->
+    ExcludedNodes = case IncludeLeader of
+        true -> [];
+        false -> [node()]
     end,
     lager:info("Cast pinged leader ~p, pinging others, excluded nodes: ~p", [node(), ExcludedNodes]),
     rcr_gen_singleton:broadcast(?MODULE, ping_non_leader, ExcludedNodes),
@@ -71,10 +71,10 @@ handle_cast(ping_non_leader, State) ->
     lager:info("Cast pinged non leader ~p", [Node]),
     {noreply, State}.
 
-handle_info({ping, IncludeSelf}, State) ->
-    ExcludedNodes = case IncludeSelf of
-        true -> [node()];
-        false -> []
+handle_info({ping, IncludeLeader}, State) ->
+    ExcludedNodes = case IncludeLeader of
+        true -> [];
+        false -> [node()]
     end,
     lager:info("Info pinged leader ~p, pinging others, excluded nodes: ~p", [node(), ExcludedNodes]),
     rcr_gen_singleton:broadinfo(?MODULE, ping_non_leader, ExcludedNodes),

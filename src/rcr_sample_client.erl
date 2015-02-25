@@ -31,8 +31,8 @@ ping_vnode(Bucket, Key, N) ->
 ping_singleton_call() ->
     rcr_sample_singleton:ping_call().
 
-ping_singleton_cast(IncludeSelf) ->
-    rcr_sample_singleton:ping_cast(IncludeSelf).
+ping_singleton_cast(IncludeLeader) ->
+    rcr_sample_singleton:ping_cast(IncludeLeader).
 
-ping_singleton_info(IncludeSelf) ->
-    rcr_sample_singleton:ping_info(IncludeSelf).
+ping_singleton_info(IncludeLeader) ->
+    rcr_sample_singleton:ping_info(IncludeLeader).
