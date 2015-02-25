@@ -16,7 +16,13 @@
 start(_StartType, _StartArgs) ->
     % obtain the following settings from hardcoded, or env?
     Config = application:get_env(rcr, config, #rcr_config{}),
-    start(Config).
+    % FIXME: following is bit dodgy, but serves as an illustration
+    case start(Config) of
+        {ok, Pid} ->
+            {ok, _AnotherPid} = rcr_sample_sup:start_link(),
+            {ok, Pid};
+        {error, _R}=E -> E
+    end.
 
 
 start(#rcr_config{vnode_configs=VnodeConfigs, ring_event_handler=RingEventHandler, node_event_handler=NodeEventHandler}) ->

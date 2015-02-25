@@ -1,4 +1,7 @@
-%% @doc Facade to hide riak_core's ugliness.  Also collects other useful functionality.
+%%% @doc Utils, grouped into:
+%%% - rcr utils for dealing with #vnode_config{}
+%%% - riak_core wrappers, hiding the complexity/inconsistencies
+%%% - other utils for eg. node connect/reconnect, recon tracing
 -module(rcr_util).
 
 -include("rcr_int.hrl").
@@ -20,7 +23,7 @@
 %%%===================================================================
 %%% rcr utils - related to #vnode_config{}
 %%%===================================================================
-%% @doc Potentially work in progress, perhaps need other validation
+%% @doc Potentially work in progress, perhaps need other validations
 validate(#vnode_config{vnode=Vnode, vnode_sup=VnodeSup}) ->
     ExpVnodeSup = list_to_atom(atom_to_list(Vnode) ++ "_sup"),
     case ExpVnodeSup of
