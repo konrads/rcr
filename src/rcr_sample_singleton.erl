@@ -47,9 +47,9 @@ init([]) ->
     {ok, no_state}.
 
 handle_call(ping, {FromPid, _FromTag}, State) ->
+    % always exclude the From node, as well as the originator, otherwise the call will block
     ExcludedNodes = lists:usort([node(), node(FromPid)]),
     lager:info("Call pinged leader ~p, pinging others, excluded nodes (cannot call leader or originator): ~p", [node(), ExcludedNodes]),
-    % always need to exclude the From node, otherwise the call will block
     Replies = rcr_gen_singleton:broadcall(?MODULE, ping_non_leader, ?TIMEOUT, ExcludedNodes),
     lager:info("Replies = ~p", [Replies]),
     {reply, leader_pinged, State};
