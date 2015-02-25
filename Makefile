@@ -3,9 +3,7 @@ RELX=$(shell [ -f ./relx ] && echo "./relx" || echo "relx")
 ERL_EXEC=$(shell which erl)
 ERL_BIN=$(shell dirname ${ERL_EXEC})
 ERL_TOP=$(shell dirname ${ERL_BIN})
-PLT_DEPS = $(filter-out deps/rebar,$(wildcard deps/*))
 ERL_LIB_DIR=${ERL_TOP}/lib
-ERL_APPS = $(shell ls $(ERL_LIB_DIR) | grep -v interface | grep -v tsung | sed -e 's/-[0-9.]*//')
 
 dev: dev-clean fast-compile release
 
