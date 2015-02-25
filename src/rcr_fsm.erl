@@ -1,4 +1,14 @@
-%% Simple in-process fsm (unlike gen_fsm) that takes a map of {State, TransitionFun}, where TransitionFun
+%% Simple in-process fsm (unlike gen_fsm) that takes a map of {State, TransitionFun},
+%% where TransitionFun accepts parameters:
+%% - Ctx (aka fsm internal state)
+%% - Event - to match appropriate transition on
+%% - ParameterList - additional params passed in together with the Event
+%% and it returns a tuple of:
+%% - new Ctx
+%% - new State
+%% - Result
+%%
+%% For example, see: {@link rcr_fsm_SUITE}.
 -module(rcr_fsm).
 
 -include("rcr.hrl").
