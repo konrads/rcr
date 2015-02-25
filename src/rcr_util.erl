@@ -1,4 +1,4 @@
-%% Facade to hide riak_core's ugliness.  Also collects other useful functionality.
+%% @doc Facade to hide riak_core's ugliness.  Also collects other useful functionality.
 -module(rcr_util).
 
 -include("rcr_int.hrl").
@@ -17,6 +17,24 @@
     recon/3
 ]).
 
+%%%===================================================================
+%%% rcr utils - related to #vnode_config{}
+%%%===================================================================
+%% @doc Potentially work in progress, perhaps need other validation
+validate(#vnode_config{vnode=Vnode, vnode_sup=VnodeSup}) ->
+    ExpVnodeSup = list_to_atom(atom_to_list(Vnode) ++ "_sup"),
+    case ExpVnodeSup of
+        VnodeSup -> ok;
+        _ -> throw({invalid_vnode_sup, {is, VnodeSup}, {must_be, ExpVnodeSup}})
+    end.
+
+get_vnode_config(VnodeModule) ->
+    {ok, #rcr_config{vnode_configs=VnodeConfigs}} = application:get_env(rcr, config),
+    lists:keyfind(VnodeModule, #vnode_config.vnode, VnodeConfigs).
+
+%%%===================================================================
+%%% riak_core wrappers - simplifications, utilizing #vnode_config
+%%%===================================================================
 command(#vnode_config{service_id=ServiceId, vnode_master=VnodeMaster},
         {Bucket, Key},
         N,
@@ -44,22 +62,15 @@ command(#vnode_config{service_id=ServiceId, vnode_master=VnodeMaster},
 get_vnode_pid(#vnode_config{vnode=Vnode}, Index) ->
     riak_core_vnode_master:get_vnode_pid(Index, Vnode).
 
-get_vnode_config(VnodeModule) ->
-    {ok, #rcr_config{vnode_configs=VnodeConfigs}} = application:get_env(rcr, config),
-    lists:keyfind(VnodeModule, #vnode_config.vnode, VnodeConfigs).
-
-%% Potentially work in progress, perhaps other validation can be of use
-validate(#vnode_config{vnode=Vnode, vnode_sup=VnodeSup}) ->
-    ExpVnodeSup = list_to_atom(atom_to_list(Vnode) ++ "_sup"),
-    case ExpVnodeSup of
-        VnodeSup -> ok;
-        _ -> throw({invalid_vnode_sup, {is, VnodeSup}, {must_be, ExpVnodeSup}})
-    end.
-
 member_status() ->
     riak_core_console:member_status([]).
 
-%% disconnect/reconnect only on erlang level, not riak's level, defaults are: Node='rcr1@127.0.0.1', Cookie=rcr.
+%%%===================================================================
+%%% network utils - eg. disconnect/connect
+%%% Works on the level of erlang's connectivity, not riak_core slustering.
+%%% Defaults:
+%%% Node='rcr1@127.0.0.1', Cookie=rcr.
+%%%===================================================================
 disconnect() ->
     disconnect('rcr1@127.0.0.1').
 
@@ -86,7 +97,9 @@ reconnect(Node, Cookie) ->
     rpc:call(Node, lager, set_loglevel, [lager_console_backend, info]),
     rpc:call(Node, error_logger, error_msg, ["Reconnect to ~p - lager loglevel => info", [node()]]).
 
-% tracing/debugging simplified
+%%%===================================================================
+%%% rcon tracing/debugging utils
+%%%===================================================================
 recon(M, F) ->
     recon(M, F, '_').
 
