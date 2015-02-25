@@ -29,7 +29,7 @@ start_link() ->
     rcr_gen_singleton:start_link(?MODULE, []).
 
 ping_call() ->
-    ping_call(infinity).
+    ping_call(?TIMEOUT).
 
 ping_call(Timeout) ->
     rcr_gen_singleton:call(?MODULE, ping, Timeout).

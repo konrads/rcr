@@ -29,6 +29,7 @@
     terminate/2,
     code_change/3]).
 
+-define(TIMEOUT, 5000).
 -record(rcr_singleton_server_state, {cb_state, server_cb}).
 
 %%%===================================================================
@@ -38,7 +39,7 @@ start_link(ServerCb, InitState) ->
     gen_server:start_link({local, ServerCb}, ?MODULE, [ServerCb, InitState], []).
 
 call(ServerRef, Request) ->
-    call(ServerRef, Request, infinity).
+    call(ServerRef, Request, ?TIMEOUT).
 call(ServerRef, Request, Timeout) ->
     {singleton_reply, Reply} = gen_server:call(ServerRef, {singleton_req, Request, Timeout}, Timeout),
     Reply.
@@ -51,7 +52,7 @@ info(ServerRef, Request) ->
     ok.
 
 broadcall(ServerCb, Request, ExcludedNodes) ->
-    broadcall(ServerCb, Request, infinity, ExcludedNodes).
+    broadcall(ServerCb, Request, ?TIMEOUT, ExcludedNodes).
 broadcall(ServerCb, Request, Timeout, ExcludedNodes) ->
     [
         begin
