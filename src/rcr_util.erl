@@ -16,6 +16,7 @@
     reconnect/0,
     reconnect/2,
     member_status/0,
+    get_cluster_nodes/0,
     recon/2,
     recon/3
 ]).
@@ -67,6 +68,10 @@ get_vnode_pid(#vnode_config{vnode=Vnode}, Index) ->
 
 member_status() ->
     riak_core_console:member_status([]).
+
+get_cluster_nodes() ->
+    {ok, Ring} = riak_core_ring_manager:get_raw_ring(),
+    lists:usort(riak_core_ring:all_members(Ring)).
 
 %%%===================================================================
 %%% network utils - eg. disconnect/connect

@@ -51,27 +51,27 @@ info(ServerRef, Request) ->
     ServerRef ! {singleton_req, Request},
     ok.
 
-broadcall(ServerCb, Request, ExcludedNodes) ->
-    broadcall(ServerCb, Request, ?TIMEOUT, ExcludedNodes).
-broadcall(ServerCb, Request, Timeout, ExcludedNodes) ->
+broadcall(ServerCb, Request, Nodes) ->
+    broadcall(ServerCb, Request, ?TIMEOUT, Nodes).
+broadcall(ServerCb, Request, Timeout, Nodes) ->
     [
         begin
             {broad_resp, Reply} = gen_server:call({ServerCb, Node}, {broad_req, Request}, Timeout),
             Reply
         end
-        || Node <- get_cluster_nodes(ExcludedNodes)
+        || Node <- Nodes
     ].
 
-broadcast(ServerCb, Request, ExcludedNodes) ->
-    [ gen_server:cast({ServerCb, Node}, {broad_req, Request}) || Node <- get_cluster_nodes(ExcludedNodes) ].
+broadcast(ServerCb, Request, Nodes) ->
+    [ gen_server:cast({ServerCb, Node}, {broad_req, Request}) || Node <- Nodes ].
 
-broadinfo(ServerCb, Request, ExcludedNodes) ->
+broadinfo(ServerCb, Request, Nodes) ->
     [
         begin
             {ServerCb, Node} ! {broad_req, Request},
             ok
         end
-        || Node <- get_cluster_nodes(ExcludedNodes)
+        || Node <- Nodes
     ].
 
 %%%===================================================================
@@ -163,9 +163,3 @@ code_change(OldVsn, #rcr_singleton_server_state{cb_state=CbState, server_cb=Serv
         {ok, CbState2} -> {ok, State#rcr_singleton_server_state{cb_state=CbState2}};
         {error, _R}=E -> E
     end.
-
-%% internals
-get_cluster_nodes(ExcludedNodes) ->
-    {ok, Ring} = riak_core_ring_manager:get_raw_ring(),
-    AllNodes = lists:usort(riak_core_ring:all_members(Ring)),
-    AllNodes -- ExcludedNodes.
