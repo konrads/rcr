@@ -6,9 +6,9 @@
     ping_vnode/0,
     ping_vnode/1,
     ping_vnode/3,
-    ping_singleton_call/0,
-    ping_singleton_cast/1,
-    ping_singleton_info/1]).
+    ping_call_singleton_server/0,
+    ping_cast_singleton_server/1,
+    ping_info_singleton_server/1]).
 
 %% could fetch that from sys.config?
 -define(client_vnode_config, #vnode_config{service_id=rcr_sample, vnode_master=rcr_sample_vnode_master}).
@@ -26,13 +26,13 @@ ping_vnode(Bucket, Key, N) ->
 
 
 %%%===================================================================
-%%% singleton pings
+%%% server singleton pings
 %%%===================================================================
-ping_singleton_call() ->
-    rcr_sample_singleton:ping_call().
+ping_call_singleton_server() ->
+    rcr_sample_singleton_server:ping_call().
 
-ping_singleton_cast(IncludeLeader) ->
-    rcr_sample_singleton:ping_cast(IncludeLeader).
+ping_cast_singleton_server(IncludeLeader) ->
+    rcr_sample_singleton_server:ping_cast(IncludeLeader).
 
-ping_singleton_info(IncludeLeader) ->
-    rcr_sample_singleton:ping_info(IncludeLeader).
+ping_info_singleton_server(IncludeLeader) ->
+    rcr_sample_singleton_server:ping_info(IncludeLeader).

@@ -1,10 +1,10 @@
-%%% Cluster-wide singleton implementation, decorates another gen_server.
+%%% Cluster-wide server singleton implementation, decorates a gen_server.
 %%% Allows for singleton and cluster-wide operations.
 %%% - decorates singleton requests/replies with singleton_req/broad_reply
 %%% - decorates broadcast requests/replies with broad_req/broad_reply
 %%% For singleton operations, funnels all ops to cluster leader.
 %%% broadcast/broadcall/broadinfo contact all of the cluster nodes, does not check if they're reachable...
--module(rcr_gen_singleton).
+-module(rcr_singleton_server).
 
 -behaviour(gen_server).
 

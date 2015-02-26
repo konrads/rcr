@@ -1,5 +1,5 @@
 %%% Sample singleton, handles messages aimed at both leader and non-leader.
--module(rcr_sample_singleton).
+-module(rcr_sample_singleton_server).
 
 -behaviour(gen_server).
 
@@ -26,19 +26,19 @@
 %%% API
 %%%===================================================================
 start_link() ->
-    rcr_gen_singleton:start_link(?MODULE, []).
+    rcr_singleton_server:start_link(?MODULE, []).
 
 ping_call() ->
     ping_call(?TIMEOUT).
 
 ping_call(Timeout) ->
-    rcr_gen_singleton:call(?MODULE, ping, Timeout).
+    rcr_singleton_server:call(?MODULE, ping, Timeout).
 
 ping_cast(IncludeLeader) ->
-    rcr_gen_singleton:cast(?MODULE, {ping, IncludeLeader}).
+    rcr_singleton_server:cast(?MODULE, {ping, IncludeLeader}).
 
 ping_info(IncludeLeader) ->
-    rcr_gen_singleton:info(?MODULE, {ping, IncludeLeader}).
+    rcr_singleton_server:info(?MODULE, {ping, IncludeLeader}).
 
 %%%===================================================================
 %%% gen_server callbacks
@@ -50,7 +50,7 @@ handle_call(ping, {FromPid, _FromTag}, State) ->
     % always exclude the originator (From node), as well as the leader, otherwise the call will block
     ExcludedNodes = lists:usort([node(), node(FromPid)]),
     lager:info("Call pinged leader ~p, pinging others, excluded nodes (cannot call leader or originator): ~p", [node(), ExcludedNodes]),
-    Replies = rcr_gen_singleton:broadcall(?MODULE, ping_non_leader, ?TIMEOUT, ExcludedNodes),
+    Replies = rcr_singleton_server:broadcall(?MODULE, ping_non_leader, ?TIMEOUT, ExcludedNodes),
     lager:info("Replies = ~p", [Replies]),
     {reply, leader_pinged, State};
 handle_call(ping_non_leader, _From, State) ->
@@ -64,7 +64,7 @@ handle_cast({ping, IncludeLeader}, State) ->
         false -> [node()]
     end,
     lager:info("Cast pinged leader ~p, pinging others, excluded nodes: ~p", [node(), ExcludedNodes]),
-    rcr_gen_singleton:broadcast(?MODULE, ping_non_leader, ExcludedNodes),
+    rcr_singleton_server:broadcast(?MODULE, ping_non_leader, ExcludedNodes),
     {noreply, State};
 handle_cast(ping_non_leader, State) ->
     Node = node(),
@@ -77,7 +77,7 @@ handle_info({ping, IncludeLeader}, State) ->
         false -> [node()]
     end,
     lager:info("Info pinged leader ~p, pinging others, excluded nodes: ~p", [node(), ExcludedNodes]),
-    rcr_gen_singleton:broadinfo(?MODULE, ping_non_leader, ExcludedNodes),
+    rcr_singleton_server:broadinfo(?MODULE, ping_non_leader, ExcludedNodes),
     {noreply, State};
 handle_info(ping_non_leader, State) ->
     Node = node(),

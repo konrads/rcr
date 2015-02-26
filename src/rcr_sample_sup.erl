@@ -10,7 +10,7 @@
 %% Supervisor callbacks
 -export([init/1]).
 
--define(CHILD(I, Type), {I, {I, start_link, []}, permanent, 5000, Type, [I, rcr_gen_singleton]}).
+-define(CHILD(I, Eng), {I, {I, start_link, []}, permanent, 5000, worker, [I, Eng]}).
 
 %%%===================================================================
 %%% API functions
@@ -23,5 +23,5 @@ start_link() ->
 %%%===================================================================
 init([]) ->
     {ok, {{one_for_one, 5, 10},
-          [?CHILD(rcr_sample_singleton, worker)]
+          [?CHILD(rcr_sample_singleton_server, rcr_singleton_server)]
          }}.
