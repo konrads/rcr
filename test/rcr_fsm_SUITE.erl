@@ -23,11 +23,11 @@ suite() ->
 init_per_testcase(_TestCase, Config) ->
     FsmState = rcr_fsm:new(
         [
-            {closed, fun(Operations, open, [Key]) when is_atom(Key) -> {Operations++[{opened_by, Key}], opened, {opening_with, Key}};
-                        (Operations, close, [Key]) when is_atom(Key) -> {Operations, closed, {error, cannot_close_closed}}
+            {closed, fun(Operations, open, Key) when is_atom(Key) -> {Operations++[{opened_by, Key}], opened, {opening_with, Key}};
+                        (Operations, close, Key) when is_atom(Key) -> {Operations, closed, {error, cannot_close_closed}}
                      end},
-            {opened, fun(Operations, open, [Key]) when is_atom(Key) -> {Operations, opened, {error, cannot_open_opened}};
-                        (Operations, close, [Key]) when is_atom(Key) -> {Operations++[{closed_by, Key}], closed, {closing_with, Key}};
+            {opened, fun(Operations, open, Key) when is_atom(Key) -> {Operations, opened, {error, cannot_open_opened}};
+                        (Operations, close, Key) when is_atom(Key) -> {Operations++[{closed_by, Key}], closed, {closing_with, Key}};
                         (_, explode, _) -> throw(booom)
                      end}
         ],
@@ -65,5 +65,5 @@ test_badarity(Config) ->
     try
         rcr_fsm:transition(FsmState, open, [invalid, more, than, one, param]),
         throw(shouldnt_succeed)
-    catch error:function_clause -> ok
+    catch error:{badarity,_} -> ok
     end.

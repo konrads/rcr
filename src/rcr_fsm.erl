@@ -41,7 +41,7 @@ new(Transitions, Ctx) ->
 -spec transition(rcr_fsm_state(), fsm_event(), param_list()) -> {rcr_fsm_state(), result()}.
 transition(#rcr_fsm_state{current=Current, ctx=Ctx, transitions=Transitions}=FsmState, Event, Args) when is_list(Args) ->
     Fun = proplists:get_value(Current, Transitions),
-    AllArgs = [Ctx, Event, Args],
+    AllArgs = [Ctx, Event | Args],
     {Ctx2, Next, Result} = apply(Fun, AllArgs),
     FsmState2 = FsmState#rcr_fsm_state{current=Next, ctx=Ctx2},
     {FsmState2, Result}.
