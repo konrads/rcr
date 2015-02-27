@@ -3,6 +3,12 @@
 
 -behaviour(gen_server).
 
+%% api
+-export([
+    start_link/1,
+    cmd/2,
+    cmd/3]).
+
 %% gen_server callbacks
 -export([
     init/1,
@@ -14,9 +20,23 @@
 
 -record(rcr_singleton_cmd_state, {cmd_cb}).
 
+-define(TIMEOUT, 3000).
+
 -callback prepare(any(), any()) -> ok | {ok, any()} | error | {error | any()}.
 -callback commit(reference(), any()) -> ok | {ok, any()} | error | {error | any()}.
 -callback rollback(reference(), any()) -> ok | {ok, any()} | error | {error | any()}.
+
+%%%===================================================================
+%%% API
+%%%===================================================================
+start_link(CmdCb) ->
+    rcr_singleton_server:start_link(CmdCb, ?MODULE, [CmdCb]).
+
+cmd(CmdCb, Cmd) ->
+    cmd(CmdCb, Cmd, ?TIMEOUT).
+
+cmd(CmdCb, Cmd, Timeout) ->
+    rcr_singleton_server:call(CmdCb, {cmd, Cmd}, Timeout).
 
 %%%===================================================================
 %%% gen_server callbacks

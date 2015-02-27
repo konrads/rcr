@@ -10,19 +10,17 @@
     commit/2,
     rollback/2]).
 
--define(TIMEOUT, 3000).
-
 %%%===================================================================
 %%% API
 %%%===================================================================
 start_link() ->
-    rcr_singleton_server:start_link(?MODULE, rcr_singleton_cmd, [?MODULE]).
+    rcr_singleton_cmd:start_link(?MODULE).
 
 cmd(Cmd) ->
-    cmd(Cmd, ?TIMEOUT).
+    rcr_singleton_cmd:cmd(?MODULE, Cmd).
 
 cmd(Cmd, Timeout) ->
-    rcr_singleton_server:call(?MODULE, {cmd, Cmd}, Timeout).
+    rcr_singleton_cmd:cmd(?MODULE, Cmd, Timeout).
 
 %%%===================================================================
 %%% Internal CMD states
