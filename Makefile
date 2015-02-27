@@ -5,9 +5,9 @@ ERL_BIN=$(shell dirname ${ERL_EXEC})
 ERL_TOP=$(shell dirname ${ERL_BIN})
 ERL_LIB_DIR=${ERL_TOP}/lib
 
-dev: dev-clean fast-compile release
-
 full: real-clean get-deps compile test release
+
+dev: dev-clean fast-compile release
 
 get-deps:
 	@${REBAR} get-deps
@@ -19,7 +19,7 @@ clean:
 	@${REBAR} clean
 
 dev-clean:
-	@rm -rf _cluster ebin test/*.beam
+	@rm -rf _cluster ebin
 
 real-clean: dev-clean
 	@rm -rf deps
