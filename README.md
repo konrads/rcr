@@ -39,7 +39,7 @@ $ _cluster/n2/bin/rcr_console join rcr1@127.0.0.1
 $ _cluster/n3/bin/rcr_console join rcr1@127.0.0.1
 ```
 
-In any of the nodes (shell1/2/3), try out few singleton operations:
+In any/all of the nodes (shell1/2/3), try out few singleton operations:
 
 ```bash
 (rcr1@127.0.0.1)1> rcr_sample_client:ping_call_singleton_server(true).
