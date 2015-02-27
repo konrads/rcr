@@ -10,7 +10,7 @@
 
 %% API
 -export([
-    start_link/2,
+    start_link/3,
     call/2,
     call/3,
     cast/2,
@@ -30,19 +30,21 @@
     code_change/3]).
 
 -define(TIMEOUT, 5000).
--record(rcr_singleton_server_state, {cb_state, server_cb}).
+-record(rcr_singleton_server_state, {server_id, cb_state, server_cb}).
 
 %%%===================================================================
 %%% API
 %%%===================================================================
-start_link(ServerCb, InitState) ->
-    gen_server:start_link({local, ServerCb}, ?MODULE, [ServerCb, InitState], []).
+start_link(ServerId, ServerCb, InitState) ->
+    gen_server:start_link({local, ServerId}, ?MODULE, [ServerId, ServerCb, InitState], []).
 
 call(ServerRef, Request) ->
     call(ServerRef, Request, ?TIMEOUT).
 call(ServerRef, Request, Timeout) ->
-    {singleton_reply, Reply} = gen_server:call(ServerRef, {singleton_req, Request, Timeout}, Timeout),
-    Reply.
+    case gen_server:call(ServerRef, {singleton_req, Request, Timeout}, Timeout) of
+        {singleton_reply, Reply} -> Reply;
+        {error, no_leader}=E -> E
+    end.
 
 cast(ServerRef, Request) ->
     gen_server:cast(ServerRef, {singleton_req, Request}).
@@ -51,24 +53,24 @@ info(ServerRef, Request) ->
     ServerRef ! {singleton_req, Request},
     ok.
 
-broadcall(ServerCb, Request, Nodes) ->
-    broadcall(ServerCb, Request, ?TIMEOUT, Nodes).
-broadcall(ServerCb, Request, Timeout, Nodes) ->
+broadcall(Nodes, ServerId, Request) ->
+    broadcall(Nodes, ServerId, Request, ?TIMEOUT).
+broadcall(Nodes, ServerId, Request, Timeout) ->
     [
         begin
-            {broad_resp, Reply} = gen_server:call({ServerCb, Node}, {broad_req, Request}, Timeout),
+            {broad_resp, Reply} = gen_server:call({ServerId, Node}, {broad_req, Request}, Timeout),
             Reply
         end
         || Node <- Nodes
     ].
 
-broadcast(ServerCb, Request, Nodes) ->
-    [ gen_server:cast({ServerCb, Node}, {broad_req, Request}) || Node <- Nodes ].
+broadcast(Nodes, ServerId, Request) ->
+    [ gen_server:cast({ServerId, Node}, {broad_req, Request}) || Node <- Nodes ].
 
-broadinfo(ServerCb, Request, Nodes) ->
+broadinfo(Nodes, ServerId, Request) ->
     [
         begin
-            {ServerCb, Node} ! {broad_req, Request},
+            {ServerId, Node} ! {broad_req, Request},
             ok
         end
         || Node <- Nodes
@@ -77,13 +79,13 @@ broadinfo(ServerCb, Request, Nodes) ->
 %%%===================================================================
 %%% gen_server callbacks
 %%%===================================================================
-init([ServerCb, CbState0]) ->
+init([ServerId, ServerCb, CbState0]) ->
     case ServerCb:init(CbState0) of
-        {ok, CbState} -> {ok, #rcr_singleton_server_state{cb_state=CbState, server_cb=ServerCb}};
+        {ok, CbState} -> {ok, #rcr_singleton_server_state{server_id= ServerId, cb_state=CbState, server_cb=ServerCb}};
         Other -> Other
     end.
 
-handle_call({singleton_req, Request, Timeout}=QfRequest, From, #rcr_singleton_server_state{cb_state=CbState, server_cb=ServerCb}=State) ->
+handle_call({singleton_req, Request, Timeout}=QfRequest, From, #rcr_singleton_server_state{server_id=ServerId, cb_state=CbState, server_cb=ServerCb}=State) ->
     ThisNode = node(),
     case riak_governor:get_cluster_leader() of
         {ok, ThisNode} ->
@@ -96,8 +98,12 @@ handle_call({singleton_req, Request, Timeout}=QfRequest, From, #rcr_singleton_se
                 {stop,Reason,Reply,CbState2} -> {stop,Reason,Reply,State#rcr_singleton_server_state{cb_state=CbState2}}
             end;
         {ok, Leader} ->
-            Reply = gen_server:call({ServerCb, Leader}, QfRequest, Timeout),
-            {reply,Reply,State};
+            % need to spawn another call to prevent this node blocking
+            spawn_link(fun() ->
+                Reply = gen_server:call({ServerId, Leader}, QfRequest, Timeout),
+                gen_server:reply(From, Reply)
+            end),
+            {noreply,State};
         {error, no_leader}=E ->
             {reply,E,State}
     end;
@@ -111,7 +117,7 @@ handle_call({broad_req, Request}, From, #rcr_singleton_server_state{cb_state=CbS
         {stop,Reason,Reply,CbState2} -> {stop,Reason,Reply,State#rcr_singleton_server_state{cb_state=CbState2}}
     end.
 
-handle_cast({singleton_req, Request}=QfRequest, #rcr_singleton_server_state{cb_state=CbState, server_cb=ServerCb}=State) ->
+handle_cast({singleton_req, Request}=QfRequest, #rcr_singleton_server_state{server_id=ServerId, cb_state=CbState, server_cb=ServerCb}=State) ->
     ThisNode = node(),
     case riak_governor:get_cluster_leader() of
         {ok, ThisNode} ->
@@ -121,7 +127,7 @@ handle_cast({singleton_req, Request}=QfRequest, #rcr_singleton_server_state{cb_s
                 {stop,Reason,CbState2} -> {stop,Reason,State#rcr_singleton_server_state{cb_state=CbState2}}
             end;
         {ok, Leader} ->
-            gen_server:cast({ServerCb, Leader}, QfRequest),
+            gen_server:cast({ServerId, Leader}, QfRequest),
             {noreply,State};
         {error, no_leader} ->
             {noreply,State}
@@ -133,7 +139,7 @@ handle_cast({broad_req, Request}, #rcr_singleton_server_state{cb_state=CbState, 
         {stop,Reason,CbState2} -> {stop,Reason,State#rcr_singleton_server_state{cb_state=CbState2}}
     end.
 
-handle_info({singleton_req, Request}=QfRequest, #rcr_singleton_server_state{cb_state=CbState, server_cb=ServerCb}=State) ->
+handle_info({singleton_req, Request}=QfRequest, #rcr_singleton_server_state{server_id=ServerId, cb_state=CbState, server_cb=ServerCb}=State) ->
     ThisNode = node(),
     case riak_governor:get_cluster_leader() of
         {ok, ThisNode} ->
@@ -143,7 +149,7 @@ handle_info({singleton_req, Request}=QfRequest, #rcr_singleton_server_state{cb_s
                 {stop,Reason,CbState2} -> {stop,Reason,State#rcr_singleton_server_state{cb_state=CbState2}}
             end;
         {ok, Leader} ->
-            {ServerCb, Leader} ! QfRequest,
+            {ServerId, Leader} ! QfRequest,
             {noreply,State};
         {error, no_leader} ->
             {noreply,State}
