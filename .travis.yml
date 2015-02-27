@@ -1,8 +1,6 @@
 before_script:
 - sudo apt-get update
-- sudo apt-get install python
-- sudo apt-get install python-setuptools
-- sudo apt-get install python-dev
+- sudo apt-get install python python-setuptools python-dev
 - curl -o trevor https://raw.githubusercontent.com/darach/trevor/master/trevor
 - chmod +x ./trevor
 - python ./trevor travis
