@@ -1,5 +1,6 @@
 RCR
 ===
+Build status (master): [![Build Status](https://travis-ci.org/konrads/rcr.svg?branch=master)](https://travis-ci.org/konrads/rcr)
 
 Currently, playground for riak_core app development.  Aiming for framework/simplifications
 along the lines of riak_core on rails, with the onus on:
