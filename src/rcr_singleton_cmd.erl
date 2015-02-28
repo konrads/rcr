@@ -1,4 +1,6 @@
 %%% Sample fsm singleton, handles messages aimed at both leader and non-leader.
+%%% 'send_cmd' reaches leader, which starts the 2 phase commit process
+%%% by sending 'prepare', 'commit' and/or 'rollback' to on all nodes.
 -module(rcr_singleton_cmd).
 
 -behaviour(gen_server).
@@ -36,7 +38,7 @@ cmd(CmdCb, Cmd) ->
     cmd(CmdCb, Cmd, ?TIMEOUT).
 
 cmd(CmdCb, Cmd, Timeout) ->
-    rcr_singleton_server:call(CmdCb, {cmd, Cmd}, Timeout).
+    rcr_singleton_server:call(CmdCb, {send_cmd, Cmd}, Timeout).
 
 %%%===================================================================
 %%% gen_server callbacks
@@ -45,7 +47,7 @@ init([CmdCb]) ->
     {ok, #rcr_singleton_cmd_state{cmd_cb=CmdCb}}.
 
 %% executed by the leader
-handle_call({cmd, Cmd}, From, #rcr_singleton_cmd_state{cmd_cb=CmdCb}=State) ->
+handle_call({send_cmd, Cmd}, From, #rcr_singleton_cmd_state{cmd_cb=CmdCb}=State) ->
     gen_fsm:start_link(rcr_2_phase_commit, [From, Cmd, rcr_util:get_cluster_nodes(), CmdCb], []),
     {noreply, State};
 

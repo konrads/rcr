@@ -18,7 +18,8 @@
     broadcall/3,
     broadcall/4,
     broadcast/3,
-    broadinfo/3]).
+    broadinfo/3,
+    reply/2]).
 
 %% gen_server callbacks
 -export([
@@ -169,3 +170,7 @@ code_change(OldVsn, #rcr_singleton_server_state{cb_state=CbState, server_cb=Serv
         {ok, CbState2} -> {ok, State#rcr_singleton_server_state{cb_state=CbState2}};
         {error, _R}=E -> E
     end.
+
+% for Leaders that want to delay the reply on call, ie. return {noreply,...} first, then call this function
+reply(From, Reply) ->
+    gen_server:reply(From, {singleton_reply, Reply}).

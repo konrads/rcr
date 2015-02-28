@@ -26,36 +26,28 @@ cmd(Cmd, Timeout) ->
 %%% Internal CMD states
 %%%===================================================================
 prepare(Ref, pwd) ->
-    Reply = case random() of
-        X when X > 0.5 -> ok;
-        X when X > 0.3 -> {ok,prepared};
-        X when X > 0.2 -> error;
-        _ -> {error,not_prepared}
-    end,
+    Reply = random(ok, {ok,prepared}, error, {error,not_prepared}),
     lager:info("cmd pwd (~p): prepare: ~p", [Ref, Reply]),
     Reply.
 
 commit(Ref, pwd) ->
-    Reply = case random() of
-        X when X > 0.5 -> ok;
-        X when X > 0.3 -> file:get_cwd();
-        X when X > 0.2 -> error;
-        _ -> {error,not_commited}
-    end,
+    Reply = random(ok, file:get_cwd(), error, {error,not_commited}),
     lager:info("cmd pwd (~p): commit: ~p", [Ref, Reply]),
     Reply.
 
 rollback(Ref, pwd) ->
-    Reply = case random() of
-        X when X > 0.5 -> ok;
-        X when X > 0.3 -> {ok,rolled_back};
-        X when X > 0.2 -> error;
-        _ -> {error,not_rolled_back}
-    end,
+    Reply = random(ok, {ok,rolled_back}, error, {error,not_rolled_back}),
     lager:info("cmd pwd (~p): rollback: ~p", [Ref, Reply]),
     Reply.
 
-random() ->
+%% internals
+random(Ok, OkFull, Error, ErrorFull) ->
     random:seed(now()),
     {_,_,Y} = random:seed(now()),
-    (Y rem 1000) / 1000.0.
+    Random = (Y rem 1000) / 1000.0,
+    case Random of
+        X when X > 0.5 -> Ok;
+        X when X > 0.3 -> OkFull;
+        X when X > 0.2 -> Error;
+        _ -> ErrorFull
+    end.

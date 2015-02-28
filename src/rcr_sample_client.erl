@@ -6,9 +6,9 @@
     ping_vnode/0,
     ping_vnode/1,
     ping_vnode/3,
-    ping_call_singleton_server/1,
-    ping_cast_singleton_server/1,
-    ping_info_singleton_server/1,
+    ping_call/0,
+    ping_cast/0,
+    ping_info/0,
     pwd/0]).
 
 %% could fetch that from sys.config?
@@ -28,14 +28,14 @@ ping_vnode(Bucket, Key, N) ->
 %%%===================================================================
 %%% server singleton pings
 %%%===================================================================
-ping_call_singleton_server(IncludeLeader) ->
-    rcr_sample_singleton_server:ping_call(IncludeLeader).
+ping_call() ->
+    rcr_sample_singleton_server:ping_call().
 
-ping_cast_singleton_server(IncludeLeader) ->
-    rcr_sample_singleton_server:ping_cast(IncludeLeader).
+ping_cast() ->
+    rcr_sample_singleton_server:ping_cast().
 
-ping_info_singleton_server(IncludeLeader) ->
-    rcr_sample_singleton_server:ping_info(IncludeLeader).
+ping_info() ->
+    rcr_sample_singleton_server:ping_info().
 
 %%%===================================================================
 %%% 2 phase commit commands
