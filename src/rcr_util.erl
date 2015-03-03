@@ -112,4 +112,4 @@ recon(M, F) ->
     recon(M, F, '_').
 
 recon(M, F, Args) ->
-    recon_trace:calls({M, F, [{Args, [], [{return_trace}]}]}, {100, 10}).
+    recon_trace:calls({M, F, [{Args, [], [{return_trace}]}]}, {100, 10}, [{scope, local}]).
