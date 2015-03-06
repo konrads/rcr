@@ -24,8 +24,9 @@ start(_StartType, _StartArgs) ->
         {error, _R}=E -> E
     end.
 
-
-start(#rcr_config{vnode_configs=VnodeConfigs, ring_event_handler=RingEventHandler, node_event_handler=NodeEventHandler}) ->
+start(#rcr_config{vnode_configs=VnodeConfigs, ring_event_handler=RingEventHandler, node_event_handler=NodeEventHandler}=Config) ->
+    % validate first
+    rcr_util:validate(Config),
     VnodeConfigsDesc = string:join(
         ["        - " ++ rcr_fmt:to_str(VC) || VC <- VnodeConfigs],
         "\n"),
@@ -38,11 +39,10 @@ start(#rcr_config{vnode_configs=VnodeConfigs, ring_event_handler=RingEventHandle
             % register vnodes
             [
                 begin
-                    ok = rcr_util:validate(VC),
                     ok = riak_core:register([{vnode_module, Vnode}]),
                     ok = riak_core_node_watcher:service_up(ServiceId, self())
                 end
-                || #vnode_config{service_id=ServiceId, vnode=Vnode}=VC <- VnodeConfigs
+                || #vnode_config{service_id=ServiceId, vnode=Vnode} <- VnodeConfigs
             ],
             % register ring handlers
             case RingEventHandler of

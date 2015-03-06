@@ -24,13 +24,24 @@
 %%%===================================================================
 %%% rcr utils - related to #vnode_config{}
 %%%===================================================================
-%% @doc Potentially work in progress, perhaps need other validations
-validate(#vnode_config{vnode=Vnode, vnode_sup=VnodeSup}) ->
-    ExpVnodeSup = list_to_atom(atom_to_list(Vnode) ++ "_sup"),
-    case ExpVnodeSup of
-        VnodeSup -> ok;
-        _ -> throw({invalid_vnode_sup, {is, VnodeSup}, {must_be, ExpVnodeSup}})
-    end.
+%% @doc Validate all known config elements
+validate(#rcr_config{vnode_configs=VnodeConfigs, ring_event_handler=RingEventHandler, node_event_handler=NodeEventHandler}) ->
+    % enforcing _sup name as per:
+    % SupName = list_to_atom(atom_to_list(App) ++ "_sup"),
+    % from https://github.com/basho/riak_core/blob/develop/src/riak_core_ring_handler.erl#L159
+    {ok, App} = application:get_application(),
+    Supervisor = list_to_atom(atom_to_list(App) ++ "_sup"),
+    validate_implements(Supervisor, supervisor),
+    case RingEventHandler of
+        undefined -> ignore;
+        _ -> validate_implements(RingEventHandler, gen_event)
+    end,
+    case NodeEventHandler of
+        undefined -> ignore;
+        _ -> validate_implements(NodeEventHandler, gen_event)
+    end,
+    [ validate_implements(Vnode, riak_core_vnode) || #vnode_config{vnode=Vnode} <- VnodeConfigs ],
+    ok.
 
 get_vnode_config(VnodeModule) ->
     {ok, #rcr_config{vnode_configs=VnodeConfigs}} = application:get_env(rcr, config),
@@ -113,3 +124,14 @@ recon(M, F) ->
 
 recon(M, F, Args) ->
     recon_trace:calls({M, F, [{Args, [], [{return_trace}]}]}, {100, 10}, [{scope, local}]).
+
+%% internals
+validate_implements(Mod, Behaviour) when is_atom(Mod), is_atom(Behaviour) ->
+    case (catch proplists:get_value(behaviour, Mod:module_info(attributes), [])) of
+        {'EXIT',{undef,_}} -> throw({undefined_module, Mod});
+        Behaviours when is_list(Behaviours) ->
+            case lists:member(Behaviour, Behaviours) of
+                false -> throw({behaviour_not_implemented, Mod, Behaviour});
+                true -> ok
+            end
+    end.

@@ -1,7 +1,6 @@
 -record(vnode_config, {
     service_id   :: atom(),
     vnode        :: module(),
-    vnode_sup    :: module(),
     vnode_master :: atom()
 }).
 -type vnode_config() :: #vnode_config{}.
