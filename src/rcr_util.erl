@@ -148,7 +148,7 @@ ensemble_join() ->
             node()
     end,
     DisabledNodes = Nodes -- [EnabledNode],
-    io:format("Enabling nodes ~p from ~p", [DisabledNodes, EnabledNode]),
+    io:format("Enabling nodes ~p from ~p.\n", [DisabledNodes, EnabledNode]),
     % enable disabled nodes
     [ riak_ensemble_manager:join(EnabledNode, N) || N <- DisabledNodes ],
     timer:sleep(5000),
