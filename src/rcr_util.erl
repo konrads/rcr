@@ -18,7 +18,8 @@
     member_status/0,
     get_cluster_nodes/0,
     recon/2,
-    recon/3
+    recon/3,
+    ensemble_join/0
 ]).
 
 %%%===================================================================
@@ -91,7 +92,7 @@ get_cluster_nodes() ->
 %%% Node='rcr1@127.0.0.1', Cookie=rcr.
 %%%===================================================================
 disconnect() ->
-    disconnect('rcr1@127.0.0.1').
+    disconnect(node()).
 
 disconnect(Node) ->
     rpc:call(Node, error_logger, error_msg, ["Disconnect from ~p - lager loglevel => critical", [node()]]),
@@ -115,6 +116,49 @@ reconnect(Node, Cookie) ->
     % rpc:call(Node, gen_event, add_handler, [error_logger, error_logger_lager_h, [info]]),
     rpc:call(Node, lager, set_loglevel, [lager_console_backend, info]),
     rpc:call(Node, error_logger, error_msg, ["Reconnect to ~p - lager loglevel => info", [node()]]).
+
+%%%===================================================================
+%%% riak_ensemble utils
+%%%===================================================================
+%% Join all nodes in the erlang network as established with net_adm:ping/1.
+%% Finds the node via:
+%% > EnabledNode = riak_ensemble_manager:enabled() =:= true,
+%% Then join all other nodes to EnabledNode via:
+%% > riak_ensemble_manager:join(EnabledNode, DisableNode).
+%% Finally, verify leader pid is the same on all nodes, indicative of healthy cluster.
+ensemble_join() ->
+    Nodes = [node()]++nodes(),
+    NodesEnabled = [ {N, catch rpc:call(N, riak_ensemble_manager, enabled, [])} || N <- Nodes ],
+    % if any failures on calling riak_ensemble_manager:enabled() - throw error
+    HasExit = fun({'EXIT', {undef, _}}) -> true;
+                 (_) -> false
+              end,
+    case lists:any(HasExit, NodesEnabled) of
+        true -> throw(not_found_riak_ensemble_manager);
+        false -> ignore
+    end,
+
+    OnlyEnabledNodes = [ N || {N, true} <- NodesEnabled ],
+    EnabledNode = case OnlyEnabledNodes of
+        [N2] -> N2;
+        [N2|_] -> N2;  % multiple enabled if ensemble_join'ing previously, pick any nodes
+        [] ->
+            % enable self
+            ok = riak_ensemble_manager:enable(),
+            node()
+    end,
+    DisabledNodes = Nodes -- [EnabledNode],
+    io:format("Enabling nodes ~p from ~p", [DisabledNodes, EnabledNode]),
+    % enable disabled nodes
+    [ riak_ensemble_manager:join(EnabledNode, N) || N <- DisabledNodes ],
+    timer:sleep(5000),
+    % ensure we have the same leader on all nodes
+    LeaderPids = [ rpc:call(N, riak_ensemble_manager, get_leader_pid, [root]) || N <- Nodes ],
+    case lists:usort(LeaderPids) of
+        [_Pid] -> ok;
+        [_Pid|_] -> throw({multiple_leaders_in_cluster, LeaderPids})
+    end,
+    ok.
 
 %%%===================================================================
 %%% rcon tracing/debugging utils
