@@ -128,7 +128,7 @@ reconnect(Node, Cookie) ->
 %% Finally, verify leader pid is the same on all nodes, indicative of healthy cluster.
 ensemble_join() ->
     Nodes = [node()]++nodes(),
-    NodesEnabled = [ {N, catch rpc:call(N, riak_ensemble_manager, enabled, [])} || N <- Nodes ],
+    {NodesEnabled, []} = rpc:multicall(Nodes, riak_ensemble_manager, enabled, []),
     % if any failures on calling riak_ensemble_manager:enabled() - throw error
     HasExit = fun({'EXIT', {undef, _}}) -> true;
                  (_) -> false
@@ -153,7 +153,7 @@ ensemble_join() ->
     [ riak_ensemble_manager:join(EnabledNode, N) || N <- DisabledNodes ],
     timer:sleep(5000),
     % ensure we have the same leader on all nodes
-    LeaderPids = [ rpc:call(N, riak_ensemble_manager, get_leader_pid, [root]) || N <- Nodes ],
+    {LeaderPids, []} = rpc:multicall(Nodes, riak_ensemble_manager, get_leader_pid, [root]),
     case lists:usort(LeaderPids) of
         [_Pid] -> ok;
         [_Pid|_] -> throw({multiple_leaders_in_cluster, LeaderPids})
