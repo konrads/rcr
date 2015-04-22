@@ -52,6 +52,12 @@ In any/all of the nodes (shell1/2/3), try out few singleton operations:
 (rcr1@127.0.0.1)2> rcr_sample_client:pwd().
 ```
 
+Testing:
+--------
+Utilize `ct_refresh` plugin!
+```
+CT_REFRESH_CHROME_START=true rebar ct skip_deps=true
+```
 
 TBD:
 ----
